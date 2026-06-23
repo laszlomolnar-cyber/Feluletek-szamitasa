@@ -167,7 +167,7 @@
   <header class="bar">
     <div class="dot"></div>
     <h1>Felületek felmérése</h1>
-    <div class="by">Felmérő: Molnár László</div>
+    <div class="by" id="byLine"></div>
     <button class="qr-btn" onclick="openQR()" title="QR-kód megosztás" aria-label="QR-kód">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -291,6 +291,15 @@
   <button class="cl" id="installClose">×</button>
 </div>
 <div class="toast" id="toast"></div>
+
+<div class="qr-overlay" id="nameOverlay">
+  <div class="qr-modal" onclick="event.stopPropagation()">
+    <h3>A felmérő neve</h3>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 14px;text-align:left">Csak egyszer kell megadni – a felmérési jegyzőkönyvbe kerül.</p>
+    <input id="nameInput" type="text" placeholder="pl. Kovács János" autocomplete="name">
+    <button class="btn" style="margin-top:12px" onclick="saveSurveyorName()">Mentés</button>
+  </div>
+</div>
 
 <div class="qr-overlay" id="qrOverlay" onclick="closeQR()">
   <div class="qr-modal" onclick="event.stopPropagation()">
@@ -423,6 +432,27 @@ function updateLive(){
 
 function clearFieldErr(){ ['r-name','r-w','r-l'].forEach(id=>$(id).classList.remove('err')); const e=$('formErr'); e.textContent=''; e.classList.remove('show'); }
 
+/* ---------- felmérő neve ---------- */
+let surveyorName = localStorage.getItem('surveyorName') || '';
+
+function initName(){
+  if(surveyorName){
+    $('byLine').textContent = 'Felmérő: ' + surveyorName;
+  } else {
+    $('nameOverlay').classList.add('open');
+    setTimeout(()=>{ try{ $('nameInput').focus(); }catch(e){} }, 300);
+  }
+}
+function saveSurveyorName(){
+  const v = $('nameInput').value.trim();
+  if(!v){ $('nameInput').classList.add('err'); $('nameInput').focus(); return; }
+  $('nameInput').classList.remove('err');
+  surveyorName = v;
+  localStorage.setItem('surveyorName', v);
+  $('nameOverlay').classList.remove('open');
+  $('byLine').textContent = 'Felmérő: ' + surveyorName;
+}
+
 function openQR(){
   $('qrOverlay').classList.add('open');
   const canvas=$('qrCanvas');
@@ -479,7 +509,10 @@ function resetForm(){
 /* ---------- 4. összegzés ---------- */
 function todayHU(){
   const m=['január','február','március','április','május','június','július','augusztus','szeptember','október','november','december'];
-  const d=new Date(); return `${d.getFullYear()}. ${m[d.getMonth()]} ${d.getDate()}.`;
+  const d=new Date();
+  const hh=String(d.getHours()).padStart(2,'0');
+  const mm=String(d.getMinutes()).padStart(2,'0');
+  return `${d.getFullYear()}. ${m[d.getMonth()]} ${d.getDate()}. ${hh}:${mm}`;
 }
 function modeLabel(){ return state.mode==='subtract'?'Ajtók/ablakok kivonva':'Teljes felület'; }
 
@@ -487,7 +520,7 @@ function goSummary(){
   if(state.rooms.length===0){ toast('Vegyél fel legalább egy helyiséget.'); return; }
   const idLine = state.propId ? esc(state.propId) : '<i>nincs megadva</i>';
   $('sumMeta').innerHTML =
-    `<b>Felmérő:</b> Molnár László<br>`+
+    `<b>Felmérő:</b> ${esc(surveyorName)||'–'}<br>`+
     `<b>Dátum:</b> ${todayHU()}<br>`+
     `<b>Ingatlan:</b> ${esc(state.propType)} — ${idLine}<br>`+
     `<b>Belmagasság:</b> ${fmt(state.ceiling)} m<br>`+
@@ -593,7 +626,7 @@ async function exportDocx(){
   children.push(new Paragraph({ border:{bottom:{style:BorderStyle.SINGLE,size:8,color:HEAD,space:2}}, spacing:{after:160}, children:[] }));
   // fejléc
   const meta=[
-    ['Felmérő: ','Molnár László'],
+    ['Felmérő: ', surveyorName||'–'],
     ['Dátum: ',todayHU()],
     ['Ingatlan: ',`${state.propType} — ${state.propId||'nincs megadva'}`],
     ['Belmagasság: ',`${fmt(state.ceiling)} m`],
@@ -667,6 +700,8 @@ async function exportDocx(){
 /* indítás */
 renderOpenings();
 show('screen-mode');
+$('nameInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveSurveyorName(); });
+initName();
 </script>
 <script src="./qrcode.js"></script>
 <script src="./docx.js"></script>
