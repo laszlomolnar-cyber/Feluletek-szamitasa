@@ -168,6 +168,12 @@
     <div class="dot"></div>
     <h1>Felületek felmérése</h1>
     <div class="by" id="byLine"></div>
+    <button class="qr-btn" onclick="openSettings()" title="Beállítások" aria-label="Beállítások">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
     <button class="qr-btn" onclick="openQR()" title="QR-kód megosztás" aria-label="QR-kód">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -298,6 +304,7 @@
     <p style="font-size:13px;color:var(--muted);margin:0 0 14px;text-align:left">Csak egyszer kell megadni – a felmérési jegyzőkönyvbe kerül.</p>
     <input id="nameInput" type="text" placeholder="pl. Kovács János" autocomplete="name">
     <button class="btn" style="margin-top:12px" onclick="saveSurveyorName()">Mentés</button>
+    <button class="btn alt" style="margin-top:8px" id="nameCancelBtn" onclick="closeNameModal()">Mégse</button>
   </div>
 </div>
 
@@ -439,9 +446,18 @@ function initName(){
   if(surveyorName){
     $('byLine').textContent = 'Felmérő: ' + surveyorName;
   } else {
+    $('nameCancelBtn').style.display = 'none';
     $('nameOverlay').classList.add('open');
     setTimeout(()=>{ try{ $('nameInput').focus(); }catch(e){} }, 300);
   }
+}
+function closeNameModal(){ $('nameOverlay').classList.remove('open'); }
+function openSettings(){
+  $('nameInput').value = surveyorName;
+  $('nameInput').classList.remove('err');
+  $('nameCancelBtn').style.display = '';
+  $('nameOverlay').classList.add('open');
+  setTimeout(()=>{ try{ $('nameInput').focus(); $('nameInput').select(); }catch(e){} }, 300);
 }
 function saveSurveyorName(){
   const v = $('nameInput').value.trim();
