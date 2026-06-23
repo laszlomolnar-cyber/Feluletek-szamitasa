@@ -147,6 +147,19 @@
   .install .tx b{display:block; font-size:13.5px; margin-bottom:1px}
   .install .go{background:#fff; color:var(--ink); border:none; border-radius:9px; padding:9px 13px; font-weight:700; font-size:13px; cursor:pointer; flex:none}
   .install .cl{background:none;border:none;color:#aab6cf;font-size:20px;cursor:pointer;flex:none;padding:0 2px}
+
+  /* QR-kód gomb és modal */
+  .qr-btn{background:none;border:none;cursor:pointer;color:var(--ink);padding:4px;flex:none;opacity:.65;line-height:0}
+  .qr-btn:hover,.qr-btn:active{opacity:1}
+  .qr-btn svg{width:26px;height:26px;display:block}
+  .qr-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:200;align-items:center;justify-content:center}
+  .qr-overlay.open{display:flex}
+  .qr-modal{background:#fff;border-radius:20px;padding:24px 20px 20px;text-align:center;max-width:280px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,.3)}
+  .qr-modal h3{font-size:15px;font-weight:700;color:var(--ink);margin:0 0 16px}
+  #qrCanvas{display:inline-block}
+  #qrCanvas canvas,#qrCanvas img{border-radius:6px;display:block}
+  .qr-url{font-size:11px;color:var(--muted);margin-top:10px;word-break:break-all}
+  .qr-close{margin-top:16px;width:100%;padding:12px;border:none;border-radius:11px;background:var(--panel);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
@@ -155,6 +168,18 @@
     <div class="dot"></div>
     <h1>Ingatlanfelmérő</h1>
     <div class="by">Felmérő: Molnár László</div>
+    <button class="qr-btn" onclick="openQR()" title="QR-kód megosztás" aria-label="QR-kód">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/>
+        <rect x="5" y="16" width="3" height="3"/>
+        <line x1="14" y1="14" x2="14" y2="14"/><line x1="17" y1="14" x2="17" y2="14"/>
+        <line x1="20" y1="14" x2="20" y2="14"/><line x1="14" y1="17" x2="14" y2="17"/>
+        <line x1="17" y1="17" x2="20" y2="17"/><line x1="20" y1="20" x2="20" y2="20"/>
+        <line x1="14" y1="20" x2="17" y2="20"/>
+      </svg>
+    </button>
   </header>
 
   <!-- 1. MÓD -->
@@ -266,6 +291,15 @@
   <button class="cl" id="installClose">×</button>
 </div>
 <div class="toast" id="toast"></div>
+
+<div class="qr-overlay" id="qrOverlay" onclick="closeQR()">
+  <div class="qr-modal" onclick="event.stopPropagation()">
+    <h3>Ingatlanfelmérő app</h3>
+    <div id="qrCanvas"></div>
+    <div class="qr-url">laszlomolnar-cyber.github.io/Feluletek-szamitasa/</div>
+    <button class="btn" style="margin-top:16px" onclick="closeQR()">Bezárás</button>
+  </div>
+</div>
 
 <script>
 /* ---------- állapot ---------- */
@@ -388,6 +422,19 @@ function updateLive(){
 ['r-name','r-w','r-l'].forEach(id=>document.addEventListener('input',e=>{ if(e.target.id===id){ $(id).classList.remove('err'); $('formErr').classList.remove('show'); } }));
 
 function clearFieldErr(){ ['r-name','r-w','r-l'].forEach(id=>$(id).classList.remove('err')); const e=$('formErr'); e.textContent=''; e.classList.remove('show'); }
+
+function openQR(){
+  $('qrOverlay').classList.add('open');
+  const canvas=$('qrCanvas');
+  if(canvas.firstChild) return;
+  new QRCode(canvas,{
+    text:'https://laszlomolnar-cyber.github.io/Feluletek-szamitasa/',
+    width:200,height:200,
+    colorDark:'#1F3864',colorLight:'#ffffff',
+    correctLevel:QRCode.CorrectLevel.H
+  });
+}
+function closeQR(){ $('qrOverlay').classList.remove('open'); }
 function fieldErr(id, msg){ clearFieldErr(); $(id).classList.add('err'); const e=$('formErr'); e.textContent=msg; e.classList.add('show'); $(id).focus(); }
 function saveRoom(){
   clearFieldErr();
@@ -621,6 +668,7 @@ async function exportDocx(){
 renderOpenings();
 show('screen-mode');
 </script>
+<script src="./qrcode.js"></script>
 <script src="./docx.js"></script>
 </body>
 </html>
