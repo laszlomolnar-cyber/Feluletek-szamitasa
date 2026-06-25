@@ -635,7 +635,8 @@ async function exportDocx(){
 
   const tblBorder={style:BorderStyle.SINGLE,size:4,color:'C7D3E6'};
   const table=new Table({
-    width:{size:100,type:WidthType.PERCENTAGE},
+    width:{size:9026,type:WidthType.DXA},
+    columnWidths:[3610,1805,1805,1806],
     borders:{top:tblBorder,bottom:tblBorder,left:tblBorder,right:tblBorder,insideHorizontal:tblBorder,insideVertical:tblBorder},
     rows:[head,...body,totRow]
   });
