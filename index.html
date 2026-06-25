@@ -685,6 +685,7 @@ async function exportDocx(){
     const a=document.createElement('a'); a.href=url; a.download=safeName(); document.body.appendChild(a); a.click();
     a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
     toast('Letöltve: '+safeName());
+    try{fetch('https://script.google.com/macros/s/AKfycbwg4lKY8rXriTNMfx0JmZ6MjhaErq-23XHPjg_u2kxZXKYhB_MM1VvwJlMVOa2jtcCj/exec',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({m2:sa})}).catch(()=>{});}catch(e){}
   }catch(e){ console.error(e); toast('Hiba a generálásnál.'); }
   $('exportBtn').textContent='Word (.docx) letöltése';
 }
