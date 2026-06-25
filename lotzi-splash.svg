@@ -1,0 +1,74 @@
+<svg width="100%" viewBox="0 0 680 480" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Lotzi – Hardware. Software.</title>
+  <desc>Kék háttéren fémes csillogású ezüst Lotzi felirat</desc>
+
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3a8aaa"/>
+      <stop offset="100%" stop-color="#1d6880"/>
+    </linearGradient>
+
+    <linearGradient id="metalGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#6a7f8e"/>
+      <stop offset="12%"  stop-color="#c8d8e4"/>
+      <stop offset="22%"  stop-color="#ffffff"/>
+      <stop offset="30%"  stop-color="#e0eaf2"/>
+      <stop offset="40%"  stop-color="#8a9faf"/>
+      <stop offset="50%"  stop-color="#ffffff"/>
+      <stop offset="58%"  stop-color="#d4e2ec"/>
+      <stop offset="68%"  stop-color="#7a8f9e"/>
+      <stop offset="78%"  stop-color="#ffffff"/>
+      <stop offset="88%"  stop-color="#b0c4d0"/>
+      <stop offset="100%" stop-color="#5a6e7c"/>
+    </linearGradient>
+
+    <linearGradient id="subGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#8a9faf"/>
+      <stop offset="25%"  stop-color="#ffffff"/>
+      <stop offset="50%"  stop-color="#c0d0dc"/>
+      <stop offset="75%"  stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#7a8f9e"/>
+    </linearGradient>
+
+    <filter id="bevel" x="-2%" y="-2%" width="104%" height="104%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+      <feOffset dx="1" dy="2" result="shadow"/>
+      <feComposite in="SourceGraphic" in2="shadow" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="680" height="480" rx="32" ry="32" fill="url(#bgGrad)"/>
+
+  <text id="lotzi"
+    x="340" y="300"
+    text-anchor="middle"
+    font-family="'Arial Black', 'Arial', sans-serif"
+    font-weight="900"
+    font-size="220"
+    letter-spacing="-4"
+    fill="url(#metalGrad)"
+    filter="url(#bevel)"
+  >Lotzi</text>
+
+  <text id="sub"
+    x="340" y="385"
+    text-anchor="middle"
+    font-family="'Arial', sans-serif"
+    font-weight="300"
+    font-size="52"
+    textLength="580"
+    lengthAdjust="spacingAndGlyphs"
+    fill="url(#subGrad)"
+    filter="url(#bevel)"
+  >Hardware. Software.</text>
+
+  <script>
+    window.addEventListener('load', () => {
+      const lotzi = document.getElementById('lotzi');
+      const sub = document.getElementById('sub');
+      const bbox = lotzi.getBBox();
+      sub.setAttribute('x', bbox.x + bbox.width / 2);
+      sub.setAttribute('textLength', bbox.width);
+    });
+  </script>
+</svg>

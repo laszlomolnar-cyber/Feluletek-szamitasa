@@ -138,6 +138,9 @@
   .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:#fff;
     padding:11px 16px; border-radius:10px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.18); opacity:0; transition:opacity .2s; pointer-events:none}
   .toast.show{opacity:1}
+  /* splash */
+  #splash{position:fixed;inset:0;z-index:999;background:#1d6880;display:flex;align-items:center;justify-content:center;transition:opacity .5s ease}
+  #splash img{width:100%;max-width:520px;display:block;padding:24px}
   /* telepítő sáv */
   .install{position:fixed; left:12px; right:12px; bottom:14px; max-width:456px; margin:0 auto;
     background:var(--ink); color:#fff; border-radius:14px; padding:12px 14px; display:none;
@@ -163,6 +166,7 @@
 </style>
 </head>
 <body>
+<div id="splash"><img src="./lotzi-splash.svg" alt="Lotzi"></div>
 <div class="wrap">
   <header class="bar">
     <div class="dot"></div>
@@ -715,9 +719,13 @@ async function exportDocx(){
 
 /* indítás */
 renderOpenings();
-show('screen-mode');
 $('nameInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveSurveyorName(); });
-initName();
+show('screen-mode');
+setTimeout(()=>{
+  const s=$('splash');
+  s.style.opacity='0';
+  setTimeout(()=>{ s.style.display='none'; initName(); }, 500);
+}, 3000);
 </script>
 <script src="./qrcode.js"></script>
 <script src="./docx.js"></script>
