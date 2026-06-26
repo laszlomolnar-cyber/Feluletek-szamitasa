@@ -108,6 +108,9 @@
   .opening-row{display:grid; grid-template-columns:52px 1fr 1fr 38px; gap:7px; align-items:center; margin-bottom:8px}
   .opening-row input{padding:10px; font-size:16px}
   .opening-row .x{border:none;background:#f4e8e8;color:var(--danger);border-radius:8px;height:38px;cursor:pointer}
+  .opening-row .check{border:none;background:#e0f5ea;color:#2a7d4f;border-radius:8px;height:38px;cursor:pointer;font-size:18px;font-weight:700}
+  .opening-confirmed{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #4caf7a;border-radius:9px;margin-bottom:6px;background:#f0faf4;font-size:13px;color:var(--ink)}
+  .opening-confirmed .info{flex:1}
   .addlink{background:none;border:1px dashed var(--btn-border);color:var(--btn);border-radius:9px;padding:9px;width:100%;font-size:13px;font-weight:600;cursor:pointer;margin-top:2px}
 
   /* összegző táblázat */
@@ -324,7 +327,8 @@
 /* ---------- állapot ---------- */
 const state = { mode:null, propType:'lakás', propId:'', ceiling:null, rooms:[] };
 let editId = null;                 // épp szerkesztett helyiség id-je
-let draftDoors = [], draftWins = []; // űrlap nyílászárói
+let draftDoors = [], draftWins = []; // megerősített nyílászárók
+let doorInputVal={qty:'1',w:'',h:''}, winInputVal={qty:'1',w:'',h:''}; // aktív beviteli sor
 
 /* ---------- segédek ---------- */
 const $ = id => document.getElementById(id);
@@ -399,16 +403,24 @@ function renderRooms(){
 }
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-function addOpening(kind, data){
-  const arr = kind==='door'?draftDoors:draftWins;
-  arr.push(data||{qty:'1',w:'',h:''});
-  renderOpenings();
+function addOpening(kind){
+  const inp=$(kind==='door'?'doorList':'winList').querySelector('input');
+  if(inp){inp.focus();inp.scrollIntoView({behavior:'smooth',block:'nearest'});}
 }
-function delOpening(kind, i){ (kind==='door'?draftDoors:draftWins).splice(i,1); renderOpenings(); }
-function syncOpening(kind, i, field, val){ (kind==='door'?draftDoors:draftWins)[i][field]=val; updateLive(); updateOpeningBtns(); }
+function delOpening(kind,i){(kind==='door'?draftDoors:draftWins).splice(i,1);renderOpenings();updateLive();}
+function syncInput(kind,field,val){if(kind==='door')doorInputVal[field]=val;else winInputVal[field]=val;}
+function confirmOpening(kind){
+  const inp=kind==='door'?doorInputVal:winInputVal;
+  const arr=kind==='door'?draftDoors:draftWins;
+  if(!(num(inp.qty)||0)||!isFinite(num(inp.w))||!isFinite(num(inp.h)))return;
+  arr.push({qty:inp.qty,w:inp.w,h:inp.h});
+  if(kind==='door')doorInputVal={qty:'1',w:'',h:''};
+  else winInputVal={qty:'1',w:'',h:''};
+  renderOpenings();updateLive();
+}
 function renderOpenings(){
-  $('doorList').innerHTML = arr2(draftDoors,'door');
-  $('winList').innerHTML  = arr2(draftWins,'win');
+  $('doorList').innerHTML=confirmedHtml(draftDoors,'door')+inputRowHtml('door');
+  $('winList').innerHTML=confirmedHtml(draftWins,'win')+inputRowHtml('win');
   updateOpeningBtns();
 }
 function updateOpeningBtns(){
@@ -417,14 +429,24 @@ function updateOpeningBtns(){
   $('btnDoor').textContent='- Ajtó felület kivonása'+(dc>0?' ('+dc+' ajtó)':'');
   $('btnWin').textContent='-Ablak felület kivonása'+(wc>0?' ('+wc+' ablak)':'');
 }
-function arr2(arr,kind){
-  return arr.map((o,i)=>`
-    <div class="opening-row">
-      <input value="${o.qty||''}" inputmode="numeric" placeholder="db" oninput="syncOpening('${kind}',${i},'qty',this.value)">
-      <input value="${o.w||''}" inputmode="decimal" placeholder="szél. (m)" oninput="syncOpening('${kind}',${i},'w',this.value)">
-      <input value="${o.h||''}" inputmode="decimal" placeholder="mag. (m)" oninput="syncOpening('${kind}',${i},'h',this.value)">
-      <button class="x" onclick="delOpening('${kind}',${i})">×</button>
-    </div>`).join('');
+function confirmedHtml(arr,kind){
+  return arr.map((o,i)=>{
+    const q=num(o.qty)||0,w=num(o.w),h=num(o.h);
+    const area=isFinite(w)&&isFinite(h)?fmt(q*w*h):'–';
+    return '<div class="opening-confirmed">'+
+      '<span class="info">'+q+' db &times; '+dim(w)+'&times;'+dim(h)+' m = '+area+' m²</span>'+
+      '<button class="x" onclick="delOpening(\''+kind+'\','+i+')">×</button>'+
+      '</div>';
+  }).join('');
+}
+function inputRowHtml(kind){
+  const inp=kind==='door'?doorInputVal:winInputVal;
+  return '<div class="opening-row">'+
+    '<input value="'+(inp.qty||'')+'" inputmode="numeric" placeholder="db" oninput="syncInput(\''+kind+'\',\'qty\',this.value)">'+
+    '<input value="'+(inp.w||'')+'" inputmode="decimal" placeholder="szél. (m)" oninput="syncInput(\''+kind+'\',\'w\',this.value)">'+
+    '<input value="'+(inp.h||'')+'" inputmode="decimal" placeholder="mag. (m)" oninput="syncInput(\''+kind+'\',\'h\',this.value)">'+
+    '<button class="check" onclick="confirmOpening(\''+kind+'\')">✓</button>'+
+    '</div>';
 }
 
 function currentDraft(){
@@ -530,6 +552,7 @@ function editRoom(id){
   $('r-name').value=r.name; $('r-w').value=r.w; $('r-l').value=r.l; $('r-h').value=r.h||''; $('r-note').value=r.note||'';
   draftDoors = JSON.parse(JSON.stringify(r.doors||[]));
   draftWins  = JSON.parse(JSON.stringify(r.windows||[]));
+  doorInputVal={qty:'1',w:'',h:''}; winInputVal={qty:'1',w:'',h:''};
   renderOpenings();
   $('form-title').textContent='Helyiség szerkesztése';
   $('saveBtn').textContent='Módosítás mentése';
@@ -539,6 +562,7 @@ function editRoom(id){
 function delRoom(id){ state.rooms=state.rooms.filter(r=>r.id!==id); if(editId===id) resetForm(); renderRooms(); }
 function resetForm(){
   editId=null; draftDoors=[]; draftWins=[];
+  doorInputVal={qty:'1',w:'',h:''}; winInputVal={qty:'1',w:'',h:''};
   ['r-name','r-w','r-l','r-h','r-note'].forEach(id=>{ $(id).value=''; $(id).classList.remove('err'); });
   clearFieldErr();
   renderOpenings();
