@@ -404,7 +404,7 @@ function renderRooms(){
           if(doorDb>0) parts.push(doorDb+' ajtó');
           kivontSor='<br>'+parts.join(' és ')+' kivonva, összesen: '+fmt(kivont)+' m²';
         }
-        vals='Bruttó felület: '+fmt(brutto)+' m²<br>Festendő felület: '+fmt(c.paint)+' m²'+kivontSor;
+        vals='Bruttó felület: '+fmt(brutto)+' m²'+kivontSor+'<br>Festendő felület: '+fmt(c.paint)+' m²';
       } else {
         vals='Festendő felület: '+fmt(c.paint)+' m²';
       }
