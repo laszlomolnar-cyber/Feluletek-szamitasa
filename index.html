@@ -64,14 +64,14 @@
   .mode-btn:active{transform:scale(.985); filter:brightness(1.08)}
   .mode-btn .t{font-size:16px; font-weight:700}
   .mode-btn .s{font-size:12.5px; color:#cfdcf2; margin-top:3px}
+  #screen-mode{display:flex; flex-direction:column; min-height:calc(100dvh - 56px)}
   .share-btn{
-    position:fixed; bottom:0; left:0; right:0;
-    text-align:center; background:rgba(29,104,128,0.97); border:none; border-top:1px solid rgba(255,255,255,0.15);
-    padding:16px 14px; padding-bottom:calc(16px + env(safe-area-inset-bottom));
+    width:100%; text-align:center; background:transparent; border:1.5px solid rgba(255,255,255,0.35);
+    border-radius:13px; padding:13px 14px; margin-top:auto; margin-bottom:env(safe-area-inset-bottom,0px);
     color:#cfdcf2; cursor:pointer; font-size:15px;
-    font-weight:600; transition:filter .15s ease; z-index:10;
+    font-weight:600; transition:transform .05s ease, filter .15s ease;
   }
-  .share-btn:active{filter:brightness(1.2)}
+  .share-btn:active{transform:scale(.985); filter:brightness(1.15)}
 
   .seg{display:flex; gap:8px}
   .seg button{
