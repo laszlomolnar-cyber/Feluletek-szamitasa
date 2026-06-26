@@ -246,10 +246,10 @@
       <div id="openings" class="hidden">
         <div class="sec-title">Ajtók</div>
         <div id="doorList"></div>
-        <button class="addlink" onclick="addOpening('door')">- Ajtó felület kivonása</button>
+        <button id="btnDoor" class="addlink" onclick="addOpening('door')">- Ajtó felület kivonása</button>
         <div class="sec-title">Ablakok</div>
         <div id="winList"></div>
-        <button class="addlink" onclick="addOpening('win')">- Ablak felület kivonása</button>
+        <button id="btnWin" class="addlink" onclick="addOpening('win')">- Ablak felület kivonása</button>
       </div>
 
       <label>Megjegyzés – opcionális</label>
@@ -405,10 +405,17 @@ function addOpening(kind, data){
   renderOpenings();
 }
 function delOpening(kind, i){ (kind==='door'?draftDoors:draftWins).splice(i,1); renderOpenings(); }
-function syncOpening(kind, i, field, val){ (kind==='door'?draftDoors:draftWins)[i][field]=val; updateLive(); }
+function syncOpening(kind, i, field, val){ (kind==='door'?draftDoors:draftWins)[i][field]=val; updateLive(); updateOpeningBtns(); }
 function renderOpenings(){
   $('doorList').innerHTML = arr2(draftDoors,'door');
   $('winList').innerHTML  = arr2(draftWins,'win');
+  updateOpeningBtns();
+}
+function updateOpeningBtns(){
+  const dc=draftDoors.reduce((s,d)=>s+(num(d.qty)||0),0);
+  const wc=draftWins.reduce((s,d)=>s+(num(d.qty)||0),0);
+  $('btnDoor').textContent='- Ajtó felület kivonása'+(dc>0?' ('+dc+' ajtó)':'');
+  $('btnWin').textContent='-Ablak felület kivonása'+(wc>0?' ('+wc+' ablak)':'');
 }
 function arr2(arr,kind){
   return arr.map((o,i)=>`
