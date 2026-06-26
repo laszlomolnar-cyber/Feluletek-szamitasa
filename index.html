@@ -65,11 +65,13 @@
   .mode-btn .t{font-size:16px; font-weight:700}
   .mode-btn .s{font-size:12.5px; color:#cfdcf2; margin-top:3px}
   .share-btn{
-    width:100%; text-align:center; background:transparent; border:1.5px solid rgba(255,255,255,0.35);
-    border-radius:13px; padding:13px 14px; margin-top:10px; color:#cfdcf2; cursor:pointer; font-size:15px;
-    font-weight:600; transition:transform .05s ease, filter .15s ease;
+    position:fixed; bottom:0; left:0; right:0;
+    text-align:center; background:rgba(29,104,128,0.97); border:none; border-top:1px solid rgba(255,255,255,0.15);
+    padding:16px 14px; padding-bottom:calc(16px + env(safe-area-inset-bottom));
+    color:#cfdcf2; cursor:pointer; font-size:15px;
+    font-weight:600; transition:filter .15s ease; z-index:10;
   }
-  .share-btn:active{transform:scale(.985); filter:brightness(1.15)}
+  .share-btn:active{filter:brightness(1.2)}
 
   .seg{display:flex; gap:8px}
   .seg button{
@@ -211,8 +213,8 @@
         <div class="t">Ajtók/ablakok kivonása</div>
         <div class="s">Az ajtók és ablakok felületét levonja</div>
       </button>
-      <button class="share-btn" onclick="shareApp()">Alkalmazás megosztása</button>
     </div>
+    <button class="share-btn" onclick="shareApp()">Alkalmazás megosztása</button>
   </section>
 
   <!-- 2. INGATLAN -->
