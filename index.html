@@ -61,10 +61,15 @@
     border-radius:13px; padding:15px 14px; margin-bottom:11px; color:#fff; cursor:pointer;
     transition:transform .05s ease, filter .15s ease;
   }
-  .mode-btn:last-child{margin-bottom:0}
   .mode-btn:active{transform:scale(.985); filter:brightness(1.08)}
   .mode-btn .t{font-size:16px; font-weight:700}
   .mode-btn .s{font-size:12.5px; color:#cfdcf2; margin-top:3px}
+  .share-btn{
+    width:100%; text-align:center; background:transparent; border:1.5px solid rgba(255,255,255,0.35);
+    border-radius:13px; padding:13px 14px; margin-top:10px; color:#cfdcf2; cursor:pointer; font-size:15px;
+    font-weight:600; transition:transform .05s ease, filter .15s ease;
+  }
+  .share-btn:active{transform:scale(.985); filter:brightness(1.15)}
 
   .seg{display:flex; gap:8px}
   .seg button{
@@ -206,6 +211,7 @@
         <div class="t">Ajtók/ablakok kivonása</div>
         <div class="s">Az ajtók és ablakok felületét levonja</div>
       </button>
+      <button class="share-btn" onclick="shareApp()">Alkalmazás megosztása</button>
     </div>
   </section>
 
@@ -336,6 +342,17 @@ function num(v){ if(v==null) return NaN; return parseFloat(String(v).replace(','
 function fmt(n){ if(!isFinite(n)) return '–'; return n.toFixed(2).replace('.',','); }
 function dim(n){ if(!isFinite(n)) return ''; return n.toFixed(2).replace('.',','); }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+async function shareApp(){
+  const url=window.location.href;
+  try{
+    if(navigator.share){
+      await navigator.share({title:'Felületek felmérése',text:'Egyszerű területfelmérő alkalmazás',url});
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast('Link másolva a vágólapra');
+    }
+  }catch(e){}
+}
 function show(id){
   ['screen-mode','screen-prop','screen-rooms','screen-summary'].forEach(s=>$(s).classList.add('hidden'));
   $(id).classList.remove('hidden');
