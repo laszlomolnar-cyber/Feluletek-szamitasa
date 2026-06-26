@@ -433,9 +433,25 @@ function currentDraft(){
   };
 }
 function updateLive(){
-  const c = roomCalc(currentDraft());
-  $('live-area').textContent  = c?fmt(c.area):'–';
-  $('live-paint').textContent = c?fmt(c.paint):'–';
+  const d=currentDraft(), c=roomCalc(d);
+  if(state.mode==='subtract'){
+    let br='–',kv='–',nt='–';
+    if(c){
+      const brutto=2*(c.w+c.l)*c.h+c.w*c.l;
+      let kivont=0;
+      (d.doors||[]).forEach(o=>{const q=num(o.qty)||0,dw=num(o.w),dh=num(o.h);if(isFinite(dw)&&isFinite(dh))kivont+=q*dw*dh;});
+      (d.windows||[]).forEach(o=>{const q=num(o.qty)||0,dw=num(o.w),dh=num(o.h);if(isFinite(dw)&&isFinite(dh))kivont+=q*dw*dh;});
+      br=fmt(brutto);kv=fmt(kivont);nt=fmt(Math.max(brutto-kivont,0));
+    }
+    $('live').innerHTML='<div style="width:100%">'+
+      '<div style="display:flex;justify-content:space-between"><span>Bruttó felület</span><b>'+br+' m²</b></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:5px"><span>Kivont felület</span><b>'+kv+' m²</b></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:5px"><span>Nettó felület</span><b>'+nt+' m²</b></div>'+
+      '</div>';
+  } else {
+    $('live-area').textContent=c?fmt(c.area):'–';
+    $('live-paint').textContent=c?fmt(c.paint):'–';
+  }
 }
 ['r-w','r-l','r-h'].forEach(id=>document.addEventListener('input',e=>{ if(e.target.id===id) updateLive(); }));
 ['r-name','r-w','r-l'].forEach(id=>document.addEventListener('input',e=>{ if(e.target.id===id){ $(id).classList.remove('err'); $('formErr').classList.remove('show'); } }));
