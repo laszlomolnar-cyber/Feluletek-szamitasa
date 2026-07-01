@@ -103,11 +103,19 @@
     display:flex; align-items:center; gap:10px; padding:12px; border:1px solid var(--line);
     border-radius:11px; margin-bottom:9px; background:#fff;
   }
-  .room .info{flex:1; min-width:0}
-  .room .info .rh{font-weight:700; font-size:14px; color:var(--ink); margin-bottom:3px}
-  .room .info .rv{font-size:12px; color:#3a455c; line-height:1.6}
-  .room .info .note{font-size:12px; color:#5a4a2a; margin-top:4px; background:#fdf6e6; border-radius:7px; padding:4px 7px; display:block}
-  .room .x{border:none; background:#f4e8e8; color:var(--danger); border-radius:8px; width:34px; height:34px; font-size:18px; cursor:pointer; flex:none}
+  /* .info: kitölti a rendelkezésre álló szélességet, semmi truncation */
+  .room .info{
+    flex:1 1 0; min-width:0; overflow:visible;
+    white-space:normal; word-break:break-word; overflow-wrap:anywhere
+  }
+  /* fejléc sor: teljes szélesség, soha nem vágódik le */
+  .room .info .rh{
+    display:block; font-weight:700; font-size:14px; color:var(--ink);
+    white-space:normal; overflow:visible; overflow-wrap:anywhere; margin-bottom:3px
+  }
+  .room .info .rv{display:block; font-size:12px; color:#3a455c; line-height:1.6}
+  .room .info .note{display:block; font-size:12px; color:#5a4a2a; margin-top:4px; background:#fdf6e6; border-radius:7px; padding:4px 7px}
+  .room .x{border:none; background:#f4e8e8; color:var(--danger); border-radius:8px; width:34px; height:34px; font-size:18px; cursor:pointer; flex:none; align-self:center}
 
   .empty{font-size:13px; color:var(--muted); text-align:center; padding:10px 0}
 
