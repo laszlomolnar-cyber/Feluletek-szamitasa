@@ -638,13 +638,27 @@ function goSummary(){
     `<b>Belmagasság:</b> ${fmt(state.ceiling)} m<br>`+
     `<b>Számítási mód:</b> ${modeLabel()}`;
 
-  let sa=0, sp=0;
-  let rows = `<thead><tr><th>Helyiség</th><th class="num">Méret (m)</th><th class="num">Alapterület (m²)</th><th class="num">Festendő (m²)</th></tr></thead><tbody>`;
+  let sa=0, sp=0, sb=0, sk=0;
+  const isSub = state.mode==='subtract';
+  let rows = isSub
+    ? `<thead><tr><th>Helyiség</th><th class="num">Méret (m)</th><th class="num">Alapterület (m²)</th><th class="num">Teljes felület (m²)</th><th class="num">Kivont felületek (m²)</th><th class="num">Festendő (m²)</th></tr></thead><tbody>`
+    : `<thead><tr><th>Helyiség</th><th class="num">Méret (m)</th><th class="num">Alapterület (m²)</th><th class="num">Festendő (m²)</th></tr></thead><tbody>`;
   state.rooms.forEach(r=>{
     const c=roomCalc(r); if(!c) return; sa+=c.area; sp+=c.paint;
-    rows += `<tr><td>${esc(r.name)}</td><td class="num">${dim(c.w)} × ${dim(c.l)}</td><td class="num">${fmt(c.area)}</td><td class="num">${fmt(c.paint)}</td></tr>`;
+    if(isSub){
+      const brutto=2*(c.w+c.l)*c.h+c.w*c.l;
+      let kivont=0;
+      (r.doors||[]).forEach(d=>{const q=num(d.qty)||0,dw=num(d.w),dh=num(d.h);if(isFinite(dw)&&isFinite(dh))kivont+=q*dw*dh;});
+      (r.windows||[]).forEach(d=>{const q=num(d.qty)||0,dw=num(d.w),dh=num(d.h);if(isFinite(dw)&&isFinite(dh))kivont+=q*dw*dh;});
+      sb+=brutto; sk+=kivont;
+      rows += `<tr><td>${esc(r.name)}</td><td class="num">${dim(c.w)} × ${dim(c.l)}</td><td class="num">${fmt(c.area)}</td><td class="num">${fmt(brutto)}</td><td class="num">${fmt(kivont)}</td><td class="num">${fmt(c.paint)}</td></tr>`;
+    } else {
+      rows += `<tr><td>${esc(r.name)}</td><td class="num">${dim(c.w)} × ${dim(c.l)}</td><td class="num">${fmt(c.area)}</td><td class="num">${fmt(c.paint)}</td></tr>`;
+    }
   });
-  rows += `<tr class="tot"><td>Összesen</td><td class="num"></td><td class="num">${fmt(sa)}</td><td class="num">${fmt(sp)}</td></tr></tbody>`;
+  rows += isSub
+    ? `<tr class="tot"><td>Összesen</td><td class="num"></td><td class="num">${fmt(sa)}</td><td class="num">${fmt(sb)}</td><td class="num">${fmt(sk)}</td><td class="num">${fmt(sp)}</td></tr></tbody>`
+    : `<tr class="tot"><td>Összesen</td><td class="num"></td><td class="num">${fmt(sa)}</td><td class="num">${fmt(sp)}</td></tr></tbody>`;
   $('sumTable').innerHTML = rows;
   $('subNote').classList.toggle('hidden', state.mode!=='subtract');
 
@@ -700,35 +714,76 @@ async function exportDocx(){
       children:[ r(content,{bold:!!bold, color: white?'FFFFFF':'000000', size:20}) ]}) ]
   });
 
-  // sorok
-  const head = new TableRow({ tableHeader:true, children:[
-    cell('Helyiség',{fill:HEAD,bold:true,white:true}),
-    cell('Méret (m)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-    cell('Alapterület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-    cell('Festendő felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-  ]});
-  let sa=0,sp=0; const body=[];
-  state.rooms.forEach((rm,i)=>{
-    const c=roomCalc(rm); if(!c) return; sa+=c.area; sp+=c.paint;
-    const f = (i%2===0)?ROW:undefined; // páratlan (1., 3., …) sor halványkék
-    body.push(new TableRow({children:[
-      cell(rm.name,{fill:f}),
-      cell(`${dim(c.w)} × ${dim(c.l)}`,{fill:f,align:AlignmentType.RIGHT}),
-      cell(fmt(c.area),{fill:f,align:AlignmentType.RIGHT}),
-      cell(fmt(c.paint),{fill:f,align:AlignmentType.RIGHT}),
-    ]}));
-  });
-  const totRow=new TableRow({children:[
-    cell('Összesen',{fill:TOT,bold:true}),
-    cell('',{fill:TOT}),
-    cell(fmt(sa),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
-    cell(fmt(sp),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
-  ]});
+  // sorok – mód szerint
+  const isSub2 = state.mode==='subtract';
+  let sa=0,sp=0,sb=0,sk=0; const body=[];
+  let head, totRow, colWidths;
+
+  if(isSub2){
+    head = new TableRow({ tableHeader:true, children:[
+      cell('Helyiség',{fill:HEAD,bold:true,white:true}),
+      cell('Méret (m)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Alapterület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Teljes felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Kivont felületek (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Festendő felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+    ]});
+    colWidths=[2500,1000,1382,1382,1382,1380];
+    state.rooms.forEach((rm,i)=>{
+      const c=roomCalc(rm); if(!c) return; sa+=c.area; sp+=c.paint;
+      const brutto=2*(c.w+c.l)*c.h+c.w*c.l;
+      let kivont=0;
+      (rm.doors||[]).forEach(d=>{const q=num(d.qty)||0,dw=num(d.w),dh=num(d.h);if(isFinite(dw)&&isFinite(dh))kivont+=q*dw*dh;});
+      (rm.windows||[]).forEach(d=>{const q=num(d.qty)||0,dw=num(d.w),dh=num(d.h);if(isFinite(dw)&&isFinite(dh))kivont+=q*dw*dh;});
+      sb+=brutto; sk+=kivont;
+      const f=(i%2===0)?ROW:undefined;
+      body.push(new TableRow({children:[
+        cell(rm.name,{fill:f}),
+        cell(`${dim(c.w)} × ${dim(c.l)}`,{fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(c.area),{fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(brutto),{fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(kivont),{fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(c.paint),{fill:f,align:AlignmentType.RIGHT}),
+      ]}));
+    });
+    totRow=new TableRow({children:[
+      cell('Összesen',{fill:TOT,bold:true}),
+      cell('',{fill:TOT}),
+      cell(fmt(sa),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell(fmt(sb),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell(fmt(sk),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell(fmt(sp),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+    ]});
+  } else {
+    head = new TableRow({ tableHeader:true, children:[
+      cell('Helyiség',{fill:HEAD,bold:true,white:true}),
+      cell('Méret (m)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Alapterület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Festendő felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+    ]});
+    colWidths=[3610,1805,1805,1806];
+    state.rooms.forEach((rm,i)=>{
+      const c=roomCalc(rm); if(!c) return; sa+=c.area; sp+=c.paint;
+      const f=(i%2===0)?ROW:undefined;
+      body.push(new TableRow({children:[
+        cell(rm.name,{fill:f}),
+        cell(`${dim(c.w)} × ${dim(c.l)}`,{fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(c.area),{fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(c.paint),{fill:f,align:AlignmentType.RIGHT}),
+      ]}));
+    });
+    totRow=new TableRow({children:[
+      cell('Összesen',{fill:TOT,bold:true}),
+      cell('',{fill:TOT}),
+      cell(fmt(sa),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell(fmt(sp),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+    ]});
+  }
 
   const tblBorder={style:BorderStyle.SINGLE,size:4,color:'C7D3E6'};
   const table=new Table({
     width:{size:9026,type:WidthType.DXA},
-    columnWidths:[3610,1805,1805,1806],
+    columnWidths:colWidths,
     borders:{top:tblBorder,bottom:tblBorder,left:tblBorder,right:tblBorder,insideHorizontal:tblBorder,insideVertical:tblBorder},
     rows:[head,...body,totRow]
   });
