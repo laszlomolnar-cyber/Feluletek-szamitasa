@@ -701,34 +701,39 @@ async function exportDocx(){
   const ok = await ensureDocx();
   if(!ok){ $('exportBtn').textContent='Word (.docx) letöltése'; toast('A Word-modul nem töltődött be (offline?).'); return; }
   const D = window.docx;
-  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,WidthType,AlignmentType,BorderStyle,ShadingType,HeadingLevel}=D;
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,WidthType,AlignmentType,BorderStyle,ShadingType,HeadingLevel,TableLayoutType}=D;
 
   const INK='1F3864', HEAD='2E5496', ROW='F2F6FB', TOT='D6E2F0';
   const r = (t,o={})=>new TextRun(Object.assign({text:t,font:'Arial'},o));
   const p = (children,o={})=>new Paragraph(Object.assign({children:Array.isArray(children)?children:[children]},o));
 
-  const cell=(content,{fill,bold,align,white}={})=>new TableCell({
+  // cell helper – width és sz (betűméret half-point) opcionális
+  const cell=(content,{fill,bold,align,white,width,sz}={})=>new TableCell({
+    width: width ? {size:width,type:WidthType.DXA} : undefined,
     margins:{top:60,bottom:60,left:90,right:90},
     shading: fill?{type:ShadingType.CLEAR,fill,color:'auto'}:undefined,
     children:[ new Paragraph({ alignment: align||AlignmentType.LEFT,
-      children:[ r(content,{bold:!!bold, color: white?'FFFFFF':'000000', size:20}) ]}) ]
+      children:[ r(content,{bold:!!bold, color: white?'FFFFFF':'000000', size:sz||20}) ]}) ]
   });
 
-  // sorok – mód szerint
+  // oszlopszélességek módtól függően (DXA, FIXED layout)
   const isSub2 = state.mode==='subtract';
+  const colWidths = isSub2 ? [1600,1800,1400,1400,1400,1400] : [2400,2200,2200,2200];
+  const W  = i=>({width:colWidths[i]});           // normál cella
+  const WM = i=>({width:colWidths[i],sz:18});      // Méret oszlop: 9pt, soha ne törjön
+
   let sa=0,sp=0,sb=0,sk=0; const body=[];
-  let head, totRow, colWidths;
+  let head, totRow;
 
   if(isSub2){
     head = new TableRow({ tableHeader:true, children:[
-      cell('Helyiség',{fill:HEAD,bold:true,white:true}),
-      cell('Méret (m)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-      cell('Alapterület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-      cell('Teljes felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-      cell('Kivont felületek (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-      cell('Festendő felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Helyiség',              {...W(0), fill:HEAD,bold:true,white:true}),
+      cell('Méret (m)',             {...WM(1),fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Alapterület (m²)',      {...W(2), fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Teljes felület (m²)',   {...W(3), fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Kivont felületek (m²)', {...W(4), fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Festendő felület (m²)', {...W(5), fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
     ]});
-    colWidths=[2340,1800,1222,1222,1222,1220];
     state.rooms.forEach((rm,i)=>{
       const c=roomCalc(rm); if(!c) return; sa+=c.area; sp+=c.paint;
       const brutto=2*(c.w+c.l)*c.h+c.w*c.l;
@@ -738,51 +743,52 @@ async function exportDocx(){
       sb+=brutto; sk+=kivont;
       const f=(i%2===0)?ROW:undefined;
       body.push(new TableRow({children:[
-        cell(rm.name,{fill:f}),
-        cell(`${dim(c.w)} × ${dim(c.l)}`,{fill:f,align:AlignmentType.RIGHT}),
-        cell(fmt(c.area),{fill:f,align:AlignmentType.RIGHT}),
-        cell(fmt(brutto),{fill:f,align:AlignmentType.RIGHT}),
-        cell(fmt(kivont),{fill:f,align:AlignmentType.RIGHT}),
-        cell(fmt(c.paint),{fill:f,align:AlignmentType.RIGHT}),
+        cell(rm.name,         {...W(0), fill:f}),
+        cell(`${dim(c.w)} × ${dim(c.l)}`,{...WM(1),fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(c.area),     {...W(2), fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(brutto),     {...W(3), fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(kivont),     {...W(4), fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(c.paint),    {...W(5), fill:f,align:AlignmentType.RIGHT}),
       ]}));
     });
     totRow=new TableRow({children:[
-      cell('Összesen',{fill:TOT,bold:true}),
-      cell('',{fill:TOT}),
-      cell(fmt(sa),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
-      cell(fmt(sb),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
-      cell(fmt(sk),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
-      cell(fmt(sp),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell('Összesen',  {...W(0), fill:TOT,bold:true}),
+      cell('',          {...W(1), fill:TOT}),
+      cell(fmt(sa),     {...W(2), fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell(fmt(sb),     {...W(3), fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell(fmt(sk),     {...W(4), fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell(fmt(sp),     {...W(5), fill:TOT,bold:true,align:AlignmentType.RIGHT}),
     ]});
   } else {
     head = new TableRow({ tableHeader:true, children:[
-      cell('Helyiség',{fill:HEAD,bold:true,white:true}),
-      cell('Méret (m)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-      cell('Alapterület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
-      cell('Festendő felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Helyiség',         {...W(0), fill:HEAD,bold:true,white:true}),
+      cell('Méret (m)',        {...WM(1),fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Alapterület (m²)', {...W(2), fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
+      cell('Festendő felület (m²)',{...W(3),fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
     ]});
-    colWidths=[3347,2200,1739,1740];
     state.rooms.forEach((rm,i)=>{
       const c=roomCalc(rm); if(!c) return; sa+=c.area; sp+=c.paint;
       const f=(i%2===0)?ROW:undefined;
       body.push(new TableRow({children:[
-        cell(rm.name,{fill:f}),
-        cell(`${dim(c.w)} × ${dim(c.l)}`,{fill:f,align:AlignmentType.RIGHT}),
-        cell(fmt(c.area),{fill:f,align:AlignmentType.RIGHT}),
-        cell(fmt(c.paint),{fill:f,align:AlignmentType.RIGHT}),
+        cell(rm.name,       {...W(0), fill:f}),
+        cell(`${dim(c.w)} × ${dim(c.l)}`,{...WM(1),fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(c.area),   {...W(2), fill:f,align:AlignmentType.RIGHT}),
+        cell(fmt(c.paint),  {...W(3), fill:f,align:AlignmentType.RIGHT}),
       ]}));
     });
     totRow=new TableRow({children:[
-      cell('Összesen',{fill:TOT,bold:true}),
-      cell('',{fill:TOT}),
-      cell(fmt(sa),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
-      cell(fmt(sp),{fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell('Összesen', {...W(0), fill:TOT,bold:true}),
+      cell('',         {...W(1), fill:TOT}),
+      cell(fmt(sa),    {...W(2), fill:TOT,bold:true,align:AlignmentType.RIGHT}),
+      cell(fmt(sp),    {...W(3), fill:TOT,bold:true,align:AlignmentType.RIGHT}),
     ]});
   }
 
   const tblBorder={style:BorderStyle.SINGLE,size:4,color:'C7D3E6'};
+  const tblWidth=colWidths.reduce((a,b)=>a+b,0);
   const table=new Table({
-    width:{size:9026,type:WidthType.DXA},
+    width:{size:tblWidth,type:WidthType.DXA},
+    layout:TableLayoutType.FIXED,
     columnWidths:colWidths,
     borders:{top:tblBorder,bottom:tblBorder,left:tblBorder,right:tblBorder,insideHorizontal:tblBorder,insideVertical:tblBorder},
     rows:[head,...body,totRow]
