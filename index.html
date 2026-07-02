@@ -79,6 +79,38 @@
   .action-card svg{width:30px; height:30px; display:block}
   .action-card .lbl{font-size:13px; font-weight:600}
 
+  /* Kijelölt falak – felülnézeti rajz */
+  .fp-wrap{margin:14px 0 8px}
+  .fp-grid{
+    display:grid;
+    grid-template-areas:". top ." "left ceil right" ". bot .";
+    grid-template-columns:44px 1fr 44px;
+    grid-template-rows:40px minmax(82px,1fr) 40px;
+    gap:4px;
+  }
+  .fp-btn{
+    border:none; border-radius:8px; cursor:pointer;
+    font-size:11px; font-weight:700; color:#4a5568; background:#d4dcea;
+    transition:background .12s,color .12s;
+    display:flex; align-items:center; justify-content:center; padding:4px; line-height:1.2;
+  }
+  .fp-btn:active{filter:brightness(.92)}
+  .fp-btn.on{background:var(--panel); color:#fff}
+  .fp-top{grid-area:top}
+  .fp-bot{grid-area:bot}
+  .fp-left{grid-area:left; writing-mode:vertical-rl; transform:rotate(180deg)}
+  .fp-right{grid-area:right; writing-mode:vertical-rl}
+  .fp-ceil{
+    grid-area:ceil; font-size:13px; font-weight:700; color:#3a455c;
+    background:#e4eaf4; border:none; border-radius:8px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:background .12s,color .12s;
+  }
+  .fp-ceil:active{filter:brightness(.92)}
+  .fp-ceil.on{background:var(--btn); color:#fff}
+  .fp-live{font-size:12.5px; color:#3a455c; line-height:1.8; margin-top:8px}
+  .fp-live .fp-tot{font-weight:700; color:var(--ink); border-top:1px solid var(--line); margin-top:6px; padding-top:6px}
+
   .seg{display:flex; gap:8px}
   .seg button{
     flex:1; padding:13px; border-radius:11px; border:1.5px solid var(--line); background:#fff;
@@ -214,6 +246,10 @@
         <div class="t">Ajtók/ablakok kivonása</div>
         <div class="s">Az ajtók és ablakok felületét levonja</div>
       </button>
+      <button class="mode-btn" style="margin-bottom:0" onclick="pickMode('kijelolt_falak')">
+        <div class="t">Kijelölt falak</div>
+        <div class="s">Csak a kijelölt fal- és mennyezetfelületek</div>
+      </button>
     </div>
     <div class="action-cards">
       <button class="action-card" onclick="shareApp()">
@@ -277,6 +313,19 @@
       </div>
       <label>Belmagasság (m) – opcionális</label>
       <input id="r-h" inputmode="decimal" placeholder="üres = alapérték">
+
+      <div id="kfSection" class="hidden">
+        <div class="fp-wrap">
+          <div class="fp-grid">
+            <button id="fpTop"   class="fp-btn fp-top"  onclick="toggleWall('top')">–</button>
+            <button id="fpLeft"  class="fp-btn fp-left" onclick="toggleWall('left')">–</button>
+            <button id="fpCeil"  class="fp-ceil"        onclick="toggleWall('ceiling')">Mennyezet</button>
+            <button id="fpRight" class="fp-btn fp-right" onclick="toggleWall('right')">–</button>
+            <button id="fpBot"   class="fp-btn fp-bot"  onclick="toggleWall('bottom')">–</button>
+          </div>
+          <div id="fpLive" class="fp-live"><span style="color:var(--muted)">Érintsd meg a falakat vagy a mennyezetet a kijelöléshez.</span></div>
+        </div>
+      </div>
 
       <div id="openings" class="hidden">
         <div class="sec-title">Ajtók</div>
@@ -423,8 +472,50 @@ function goRooms(){
   if(!isFinite(c)){ toast('Add meg a belmagasságot.'); return; }
   state.ceiling = c;
   $('openings').classList.toggle('hidden', state.mode!=='subtract');
+  $('kfSection').classList.toggle('hidden', state.mode!=='kijelolt_falak');
+  $('live').classList.toggle('hidden', state.mode==='kijelolt_falak');
   renderRooms(); resetForm();
   show('screen-rooms');
+}
+
+/* ---------- kijelölt falak rajz ---------- */
+let kfSelected = new Set();
+const KF_LABELS = {top:'Felső fal',bottom:'Alsó fal',left:'Bal fal',right:'Jobb fal',ceiling:'Mennyezet'};
+function kfArea(id,w,l,h){
+  if(id==='top'||id==='bottom') return isFinite(w)&&isFinite(h)?w*h:NaN;
+  if(id==='left'||id==='right') return isFinite(l)&&isFinite(h)?l*h:NaN;
+  if(id==='ceiling') return isFinite(w)&&isFinite(l)?w*l:NaN;
+  return NaN;
+}
+function toggleWall(id){ if(kfSelected.has(id)) kfSelected.delete(id); else kfSelected.add(id); updateFloorPlan(); }
+function updateFloorPlan(){
+  const w=num($('r-w').value), l=num($('r-l').value);
+  const hRaw=$('r-h').value; const h=isFinite(num(hRaw))?num(hRaw):state.ceiling;
+  $('fpTop').textContent   = isFinite(w)?dim(w)+' m':'–';
+  $('fpBot').textContent   = isFinite(w)?dim(w)+' m':'–';
+  $('fpLeft').textContent  = isFinite(l)?dim(l)+' m':'–';
+  $('fpRight').textContent = isFinite(l)?dim(l)+' m':'–';
+  ['top','bottom','left','right'].forEach(id=>{
+    const el=id==='top'?$('fpTop'):id==='bottom'?$('fpBot'):id==='left'?$('fpLeft'):$('fpRight');
+    el.classList.toggle('on', kfSelected.has(id));
+  });
+  $('fpCeil').classList.toggle('on', kfSelected.has('ceiling'));
+  let total=0; const lines=[];
+  ['top','bottom','left','right','ceiling'].forEach(id=>{
+    if(!kfSelected.has(id)) return;
+    const area=kfArea(id,w,l,h); if(!isFinite(area)) return;
+    total+=area;
+    const dimStr=id==='top'||id==='bottom'?`${dim(w)} × ${dim(h)}`:id==='ceiling'?`${dim(w)} × ${dim(l)}`:`${dim(l)} × ${dim(h)}`;
+    lines.push(`${KF_LABELS[id]}: ${dimStr} = ${fmt(area)} m²`);
+  });
+  const live=$('fpLive');
+  if(kfSelected.size===0){
+    live.innerHTML='<span style="color:var(--muted)">Érintsd meg a falakat vagy a mennyezetet a kijelöléshez.</span>';
+  } else if(lines.length===0){
+    live.innerHTML='<span style="color:var(--muted)">Add meg a méreteket a számításhoz.</span>';
+  } else {
+    live.innerHTML=lines.map(l=>`<div>${l}</div>`).join('')+`<div class="fp-tot">Kijelölt összesen: ${fmt(total)} m²</div>`;
+  }
 }
 
 /* ---------- 3. helyiségek ---------- */
@@ -432,6 +523,22 @@ function renderRooms(){
   const wrap = $('roomList');
   if(state.rooms.length===0){ wrap.innerHTML = '<div class="empty">Még nincs felvett helyiség.</div>'; return; }
   wrap.innerHTML = state.rooms.map(r=>{
+    if(r.mode==='kijelolt_falak'){
+      const w=num(r.w), l=num(r.l);
+      const area=isFinite(w)&&isFinite(l)?w*l:NaN;
+      const headSize=isFinite(area)?`${dim(w)}×${dim(l)} = ${fmt(area)} m²`:'';
+      const selNames=(r.surfaces||[]).map(s=>s.name).join(', ');
+      const note=r.note?`<div class="note">📝 ${esc(r.note)}</div>`:'';
+      return `<div class="room">
+        <div class="info" onclick="editRoom('${r.id}')" style="cursor:pointer">
+          <div class="rh">${esc(r.name)}${headSize?' '+headSize:''}</div>
+          <div class="rv">Kijelölve: ${esc(selNames)}</div>
+          <div class="rv">Festendő felület: ${fmt(r.paint)} m²</div>
+          ${note}
+        </div>
+        <button class="x" onclick="delRoom('${r.id}')">×</button>
+      </div>`;
+    }
     const c = roomCalc(r);
     const headSize = c ? `${dim(c.w)}×${dim(c.l)} = ${fmt(c.area)} m²` : '';
     const note = r.note ? `<div class="note">📝 ${esc(r.note)}</div>` : '';
@@ -524,6 +631,7 @@ function currentDraft(){
   };
 }
 function updateLive(){
+  if(state.mode==='kijelolt_falak'){ updateFloorPlan(); return; }
   const d=currentDraft(), c=roomCalc(d);
   if(state.mode==='subtract'){
     let br='–',kv='–',nt='–';
@@ -598,6 +706,18 @@ function saveRoom(){
   if(!d.name){ fieldErr('r-name','⚠ Add meg a helyiség nevét.'); return; }
   if(!isFinite(num(d.w))){ fieldErr('r-w','⚠ Add meg a szélességet (pl. 3,20).'); return; }
   if(!isFinite(num(d.l))){ fieldErr('r-l','⚠ Add meg a hosszúságot (pl. 2,80).'); return; }
+  if(state.mode==='kijelolt_falak'){
+    if(kfSelected.size===0){ toast('Jelölj ki legalább egy felületet!'); return; }
+    const w=num(d.w), l=num(d.l);
+    const h=isFinite(num(d.h))?num(d.h):state.ceiling;
+    let paint=0; const surfaces=[];
+    ['top','bottom','left','right','ceiling'].forEach(id=>{
+      if(!kfSelected.has(id)) return;
+      const area=kfArea(id,w,l,h);
+      if(isFinite(area)){ surfaces.push({id,name:KF_LABELS[id],area}); paint+=area; }
+    });
+    d.mode='kijelolt_falak'; d.surfaces=surfaces; d.paint=paint;
+  }
   if(editId){
     const idx = state.rooms.findIndex(r=>r.id===editId);
     state.rooms[idx] = d;
@@ -612,10 +732,15 @@ function editRoom(id){
   const r = state.rooms.find(x=>x.id===id); if(!r) return;
   editId = id;
   $('r-name').value=r.name; $('r-w').value=r.w; $('r-l').value=r.l; $('r-h').value=r.h||''; $('r-note').value=r.note||'';
-  draftDoors = JSON.parse(JSON.stringify(r.doors||[]));
-  draftWins  = JSON.parse(JSON.stringify(r.windows||[]));
-  doorInputVal={qty:'1',w:'',h:''}; winInputVal={qty:'1',w:'',h:''};
-  renderOpenings();
+  if(r.mode==='kijelolt_falak'){
+    kfSelected=new Set((r.surfaces||[]).map(s=>s.id));
+    updateFloorPlan();
+  } else {
+    draftDoors = JSON.parse(JSON.stringify(r.doors||[]));
+    draftWins  = JSON.parse(JSON.stringify(r.windows||[]));
+    doorInputVal={qty:'1',w:'',h:''}; winInputVal={qty:'1',w:'',h:''};
+    renderOpenings();
+  }
   $('form-title').textContent='Helyiség szerkesztése';
   $('saveBtn').textContent='Módosítás mentése';
   $('cancelEdit').style.display='block';
@@ -623,7 +748,7 @@ function editRoom(id){
 }
 function delRoom(id){ state.rooms=state.rooms.filter(r=>r.id!==id); if(editId===id) resetForm(); renderRooms(); }
 function resetForm(){
-  editId=null; draftDoors=[]; draftWins=[];
+  editId=null; draftDoors=[]; draftWins=[]; kfSelected=new Set();
   doorInputVal={qty:'1',w:'',h:''}; winInputVal={qty:'1',w:'',h:''};
   ['r-name','r-w','r-l','r-h','r-note'].forEach(id=>{ $(id).value=''; $(id).classList.remove('err'); });
   clearFieldErr();
@@ -642,7 +767,11 @@ function todayHU(){
   const mm=String(d.getMinutes()).padStart(2,'0');
   return `${d.getFullYear()}. ${m[d.getMonth()]} ${d.getDate()}. ${hh}:${mm}`;
 }
-function modeLabel(){ return state.mode==='subtract'?'Ajtók/ablakok kivonva':'Teljes felület'; }
+function modeLabel(){
+  if(state.mode==='subtract') return 'Ajtók/ablakok kivonva';
+  if(state.mode==='kijelolt_falak') return 'Kijelölt falak';
+  return 'Teljes felület';
+}
 
 function goSummary(){
   if(state.rooms.length===0){ toast('Vegyél fel legalább egy helyiséget.'); return; }
@@ -660,6 +789,12 @@ function goSummary(){
     ? `<thead><tr><th>Helyiség</th><th class="num">Méret (m)</th><th class="num">Alapterület (m²)</th><th class="num">Teljes felület (m²)</th><th class="num">Kivont felületek (m²)</th><th class="num">Festendő (m²)</th></tr></thead><tbody>`
     : `<thead><tr><th>Helyiség</th><th class="num">Méret (m)</th><th class="num">Alapterület (m²)</th><th class="num">Festendő (m²)</th></tr></thead><tbody>`;
   state.rooms.forEach(r=>{
+    if(r.mode==='kijelolt_falak'){
+      const w=num(r.w), l=num(r.l); if(!isFinite(w)||!isFinite(l)) return;
+      const area=w*l; sa+=area; sp+=r.paint||0;
+      rows += `<tr><td>${esc(r.name)}</td><td class="num">${dim(w)} × ${dim(l)}</td><td class="num">${fmt(area)}</td><td class="num">${fmt(r.paint||0)}</td></tr>`;
+      return;
+    }
     const c=roomCalc(r); if(!c) return; sa+=c.area; sp+=c.paint;
     if(isSub){
       const brutto=2*(c.w+c.l)*c.h+c.w*c.l;
