@@ -536,7 +536,18 @@ function renderRooms(){
       const w=num(r.w), l=num(r.l);
       const area=isFinite(w)&&isFinite(l)?w*l:NaN;
       const headSize=isFinite(area)?`${dim(w)}×${dim(l)} = ${fmt(area)} m²`:'';
-      const selNames=(r.surfaces||[]).map(s=>s.name).join(', ');
+      const isSquare=isFinite(w)&&isFinite(l)&&Math.abs(w-l)<0.001;
+      const wBig=w>=l;
+      const nc={};
+      (r.surfaces||[]).forEach(s=>{
+        let n;
+        if(s.id==='ceiling') n='Mennyezet';
+        else if(isSquare) n='Fal';
+        else n=(s.id==='top'||s.id==='bottom')?(wBig?'Hosszabb fal':'Rövidebb fal'):(wBig?'Rövidebb fal':'Hosszabb fal');
+        nc[n]=(nc[n]||0)+1;
+      });
+      const SEL_ORDER=['Hosszabb fal','Rövidebb fal','Fal','Mennyezet'];
+      const selNames=SEL_ORDER.filter(n=>nc[n]).map(n=>nc[n]>1?`${n} (${nc[n]} db)`:n).join(', ');
       const note=r.note?`<div class="note">📝 ${esc(r.note)}</div>`:'';
       return `<div class="room">
         <div class="info" onclick="editRoom('${r.id}')" style="cursor:pointer">
