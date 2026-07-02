@@ -87,6 +87,7 @@
     grid-template-columns:44px 1fr 44px;
     grid-template-rows:40px minmax(82px,1fr) 40px;
     gap:4px;
+    transform:scale(0.9); transform-origin:top center; margin-bottom:-17px;
   }
   .fp-btn{
     border:none; border-radius:8px; cursor:pointer;
@@ -499,8 +500,10 @@ function updateFloorPlan(){
   if(isFinite(w)&&isFinite(l)&&w>0&&l>0&&fpGrid.offsetWidth>0){
     const innerW=Math.max(fpGrid.offsetWidth-96, 40);
     const ratio=Math.min(Math.max(l/w, 0.35), 2.8);
-    fpGrid.style.gridTemplateRows=`40px ${Math.max(Math.round(innerW*ratio),50)}px 40px`;
-  } else { fpGrid.style.gridTemplateRows=''; }
+    const innerH=Math.max(Math.round(innerW*ratio),50);
+    fpGrid.style.gridTemplateRows=`40px ${innerH}px 40px`;
+    fpGrid.style.marginBottom=`-${Math.round((88+innerH)*0.1)}px`;
+  } else { fpGrid.style.gridTemplateRows=''; fpGrid.style.marginBottom=''; }
   ['top','bottom','left','right'].forEach(id=>{
     const el=id==='top'?$('fpTop'):id==='bottom'?$('fpBot'):id==='left'?$('fpLeft'):$('fpRight');
     el.classList.toggle('on', kfSelected.has(id));
