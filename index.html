@@ -95,7 +95,7 @@
     display:flex; align-items:center; justify-content:center; padding:4px; line-height:1.2;
   }
   .fp-btn:active{filter:brightness(.92)}
-  .fp-btn.on{background:var(--panel); color:#fff}
+  .fp-btn.on{background:#e0f5ea; color:#2a7d4f}
   .fp-top{grid-area:top}
   .fp-bot{grid-area:bot}
   .fp-left{grid-area:left; writing-mode:vertical-rl; transform:rotate(180deg)}
@@ -107,7 +107,7 @@
     transition:background .12s,color .12s;
   }
   .fp-ceil:active{filter:brightness(.92)}
-  .fp-ceil.on{background:var(--btn); color:#fff}
+  .fp-ceil.on{background:#e0f5ea; color:#2a7d4f}
   .fp-live{font-size:12.5px; color:#3a455c; line-height:1.8; margin-top:8px}
   .fp-live .fp-tot{font-weight:700; color:var(--ink); border-top:1px solid var(--line); margin-top:6px; padding-top:6px}
 
@@ -316,7 +316,7 @@
 
       <div id="kfSection" class="hidden">
         <div class="fp-wrap">
-          <div class="fp-grid">
+          <div class="fp-grid" id="fpGrid">
             <button id="fpTop"   class="fp-btn fp-top"  onclick="toggleWall('top')">–</button>
             <button id="fpLeft"  class="fp-btn fp-left" onclick="toggleWall('left')">–</button>
             <button id="fpCeil"  class="fp-ceil"        onclick="toggleWall('ceiling')">Mennyezet</button>
@@ -495,6 +495,12 @@ function updateFloorPlan(){
   $('fpBot').textContent   = isFinite(w)?dim(w)+' m':'–';
   $('fpLeft').textContent  = isFinite(l)?dim(l)+' m':'–';
   $('fpRight').textContent = isFinite(l)?dim(l)+' m':'–';
+  const fpGrid=$('fpGrid');
+  if(isFinite(w)&&isFinite(l)&&w>0&&l>0&&fpGrid.offsetWidth>0){
+    const innerW=Math.max(fpGrid.offsetWidth-96, 40);
+    const ratio=Math.min(Math.max(l/w, 0.35), 2.8);
+    fpGrid.style.gridTemplateRows=`40px ${Math.max(Math.round(innerW*ratio),50)}px 40px`;
+  } else { fpGrid.style.gridTemplateRows=''; }
   ['top','bottom','left','right'].forEach(id=>{
     const el=id==='top'?$('fpTop'):id==='bottom'?$('fpBot'):id==='left'?$('fpLeft'):$('fpRight');
     el.classList.toggle('on', kfSelected.has(id));
