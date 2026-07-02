@@ -728,7 +728,7 @@ async function exportDocx(){
       cell('Kivont felületek (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
       cell('Festendő felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
     ]});
-    colWidths=[2500,1000,1382,1382,1382,1380];
+    colWidths=[2340,1800,1222,1222,1222,1220];
     state.rooms.forEach((rm,i)=>{
       const c=roomCalc(rm); if(!c) return; sa+=c.area; sp+=c.paint;
       const brutto=2*(c.w+c.l)*c.h+c.w*c.l;
@@ -761,7 +761,7 @@ async function exportDocx(){
       cell('Alapterület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
       cell('Festendő felület (m²)',{fill:HEAD,bold:true,white:true,align:AlignmentType.RIGHT}),
     ]});
-    colWidths=[3610,1805,1805,1806];
+    colWidths=[3347,2200,1739,1740];
     state.rooms.forEach((rm,i)=>{
       const c=roomCalc(rm); if(!c) return; sa+=c.area; sp+=c.paint;
       const f=(i%2===0)?ROW:undefined;
