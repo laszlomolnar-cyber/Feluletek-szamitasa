@@ -472,7 +472,7 @@ function goRooms(){
   const c = num($('ceiling').value);
   if(!isFinite(c)){ toast('Add meg a belmagasságot.'); return; }
   state.ceiling = c;
-  $('openings').classList.toggle('hidden', state.mode!=='subtract');
+  $('openings').classList.toggle('hidden', state.mode!=='subtract' && state.mode!=='kijelolt_falak');
   $('kfSection').classList.toggle('hidden', state.mode!=='kijelolt_falak');
   $('live').classList.toggle('hidden', state.mode==='kijelolt_falak');
   renderRooms(); resetForm();
@@ -523,7 +523,14 @@ function updateFloorPlan(){
   } else if(lines.length===0){
     live.innerHTML='<span style="color:var(--muted)">Add meg a méreteket a számításhoz.</span>';
   } else {
-    live.innerHTML=lines.map(l=>`<div>${l}</div>`).join('')+`<div class="fp-tot">Kijelölt összesen: ${fmt(total)} m²</div>`;
+    let fpKivont=0;
+    draftDoors.forEach(d=>{const q=num(d.qty)||0,dw=num(d.w),dh=num(d.h);if(isFinite(dw)&&isFinite(dh))fpKivont+=q*dw*dh;});
+    draftWins.forEach(d=>{const q=num(d.qty)||0,dw=num(d.w),dh=num(d.h);if(isFinite(dw)&&isFinite(dh))fpKivont+=q*dw*dh;});
+    const fpNetto=Math.max(total-fpKivont,0);
+    live.innerHTML=lines.map(l=>`<div>${l}</div>`).join('')+
+      `<div class="fp-tot">Kijelölt felület: ${fmt(total)} m²</div>`+
+      (fpKivont>0?`<div style="color:#3a455c">Kivont felület: ${fmt(fpKivont)} m²</div>`+
+                  `<div class="fp-tot">Festendő felület: ${fmt(fpNetto)} m²</div>`:'');
   }
 }
 
@@ -548,13 +555,28 @@ function renderRooms(){
       });
       const SEL_ORDER=['Hosszabb fal','Rövidebb fal','Fal','Mennyezet'];
       const selNames=SEL_ORDER.filter(n=>nc[n]).map(n=>nc[n]>1?`${n} (${nc[n]} db)`:n).join(', ');
+      const brutto=(r.surfaces||[]).reduce((s,surf)=>s+surf.area,0);
+      let kfKiv=0, doorDb=0, winDb=0;
+      (r.doors||[]).forEach(d=>{const q=num(d.qty)||0,dw=num(d.w),dh=num(d.h);doorDb+=q;if(isFinite(dw)&&isFinite(dh))kfKiv+=q*dw*dh;});
+      (r.windows||[]).forEach(d=>{const q=num(d.qty)||0,dw=num(d.w),dh=num(d.h);winDb+=q;if(isFinite(dw)&&isFinite(dh))kfKiv+=q*dw*dh;});
       const note=r.note?`<div class="note">📝 ${esc(r.note)}</div>`:'';
+      let kfRows;
+      if(doorDb>0||winDb>0){
+        const parts=[];
+        if(winDb>0) parts.push(winDb+' ablak');
+        if(doorDb>0) parts.push(doorDb+' ajtó');
+        kfRows=`<div class="rv">Kijelölve: ${esc(selNames)}</div>`+
+          `<div class="rv">Kijelölt felület: ${fmt(brutto)} m²</div>`+
+          `<div class="rv">Kivonva ${parts.join(', ')}: ${fmt(kfKiv)} m²</div>`+
+          `<div class="rv">Festendő felület: ${fmt(r.paint)} m²</div>`;
+      } else {
+        kfRows=`<div class="rv">Kijelölve: ${esc(selNames)}</div>`+
+          `<div class="rv">Festendő felület: ${fmt(r.paint)} m²</div>`;
+      }
       return `<div class="room">
         <div class="info" onclick="editRoom('${r.id}')" style="cursor:pointer">
           <div class="rh">${esc(r.name)}${headSize?' '+headSize:''}</div>
-          <div class="rv">Kijelölve: ${esc(selNames)}</div>
-          <div class="rv">Festendő felület: ${fmt(r.paint)} m²</div>
-          ${note}
+          ${kfRows}${note}
         </div>
         <button class="x" onclick="delRoom('${r.id}')">×</button>
       </div>`;
@@ -730,13 +752,16 @@ function saveRoom(){
     if(kfSelected.size===0){ toast('Jelölj ki legalább egy felületet!'); return; }
     const w=num(d.w), l=num(d.l);
     const h=isFinite(num(d.h))?num(d.h):state.ceiling;
-    let paint=0; const surfaces=[];
+    let brutto=0; const surfaces=[];
     ['top','bottom','left','right','ceiling'].forEach(id=>{
       if(!kfSelected.has(id)) return;
       const area=kfArea(id,w,l,h);
-      if(isFinite(area)){ surfaces.push({id,name:KF_LABELS[id],area}); paint+=area; }
+      if(isFinite(area)){ surfaces.push({id,name:KF_LABELS[id],area}); brutto+=area; }
     });
-    d.mode='kijelolt_falak'; d.surfaces=surfaces; d.paint=paint;
+    let kfKivont=0;
+    (d.doors||[]).forEach(o=>{const q=num(o.qty)||0,dw=num(o.w),dh=num(o.h);if(isFinite(dw)&&isFinite(dh))kfKivont+=q*dw*dh;});
+    (d.windows||[]).forEach(o=>{const q=num(o.qty)||0,dw=num(o.w),dh=num(o.h);if(isFinite(dw)&&isFinite(dh))kfKivont+=q*dw*dh;});
+    d.mode='kijelolt_falak'; d.surfaces=surfaces; d.paint=Math.max(brutto-kfKivont,0);
   }
   if(editId){
     const idx = state.rooms.findIndex(r=>r.id===editId);
@@ -754,6 +779,10 @@ function editRoom(id){
   $('r-name').value=r.name; $('r-w').value=r.w; $('r-l').value=r.l; $('r-h').value=r.h||''; $('r-note').value=r.note||'';
   if(r.mode==='kijelolt_falak'){
     kfSelected=new Set((r.surfaces||[]).map(s=>s.id));
+    draftDoors = JSON.parse(JSON.stringify(r.doors||[]));
+    draftWins  = JSON.parse(JSON.stringify(r.windows||[]));
+    doorInputVal={qty:'1',w:'',h:''}; winInputVal={qty:'1',w:'',h:''};
+    renderOpenings();
     updateFloorPlan();
   } else {
     draftDoors = JSON.parse(JSON.stringify(r.doors||[]));
